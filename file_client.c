@@ -3,8 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <time.h>
 #include <arpa/inet.h>
+#include <sys/time.h>
 #include <sys/socket.h>
 
 #define BUF_SIZE 61440 // 60kb
@@ -22,8 +22,8 @@ int main(int argc, char* argv[])
 	off_t file_size = 0;
 	unsigned long bytes_count = 0;
 
-	clock_t start_clock;
-	clock_t end_clock;
+	struct timeval start_time;
+	struct timeval end_time;
 	double work_time = 0;
 
 	struct sockaddr_in serv_addr;
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 			break;
 
 		write(sock, buf, BUF_SIZE);
-		// 
+		
 		strcpy(path, CLIENT_DIR);
 		strcat(path, buf);
 		
@@ -87,15 +87,18 @@ int main(int argc, char* argv[])
 		write(sock, buf, BUF_SIZE);
 
 		puts("Start download ...");
-		start_clock = clock();
+		gettimeofday(&start_time, NULL);
 		while ((len = read(sock, buf, BUF_SIZE)) > 0) {
 			write(fd, buf, len);
 			bytes_count += len;
 			if (bytes_count >= file_size) break;
 		}
-		end_clock = clock();
+		gettimeofday(&end_time, NULL);
 
-		work_time = (double)(end_clock - start_clock) / CLOCKS_PER_SEC;
+		work_time = (double)(end_time.tv_sec)
+			+ (double)(end_time.tv_usec)/1000000.0
+			- (double)(start_time.tv_sec)
+			- (double)(start_time.tv_usec)/1000000.0;
 		printf("... File Size : %ld\n", bytes_count);
 		printf("... Time Spent : %.3lf\n", work_time);
 		printf("... %.3lf b/s\n", (double)bytes_count/work_time);
